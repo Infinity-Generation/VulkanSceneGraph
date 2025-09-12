@@ -46,19 +46,22 @@ namespace vsg
         CompileManager(Viewer& viewer, ref_ptr<ResourceHints> hints);
 
         /// add a compile Context for device
-        void add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements = {});
+        std::vector<ref_ptr<Context>> add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for Window and associated viewport.
-        void add(Window& window, ref_ptr<ViewportState> viewport = {}, const ResourceRequirements& resourceRequirements = {});
+        std::vector<ref_ptr<Context>> add(Window& window, ref_ptr<ViewportState> viewport = {}, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for View
-        void add(Window& window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
+        std::vector<ref_ptr<Context>> add(Window& window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for Framebuffer and associated View
-        void add(Framebuffer& framebuffer, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
+        std::vector<ref_ptr<Context>> add(Framebuffer& framebuffer, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for all the Views assigned to a Viewer
         void add(const Viewer& viewer, const ResourceRequirements& resourceRequirements = {});
+
+        /// remove a compile Context
+        void remove(ref_ptr<Context> context);
 
         /// assign Instrumentation to all CompileTraversal and their associated Context
         void assignInstrumentation(ref_ptr<Instrumentation> in_instrumentation);
