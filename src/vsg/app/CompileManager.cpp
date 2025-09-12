@@ -99,48 +99,60 @@ CompileManager::CompileTraversals::container_type CompileManager::takeCompileTra
     return cts;
 }
 
-void CompileManager::add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements)
+std::vector<ref_ptr<Context>> CompileManager::add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements)
 {
+    std::vector<ref_ptr<Context>> contexts;
     auto cts = takeCompileTraversals(numCompileTraversals);
     for (auto& ct : cts)
     {
-        ct->add(device, resourceRequirements);
+        contexts.push_back(ct->add(device, resourceRequirements));
 
         compileTraversals->add(ct);
     }
+
+    return contexts;
 }
 
-void CompileManager::add(Window& window, ref_ptr<ViewportState> viewport, const ResourceRequirements& resourceRequirements)
+std::vector<ref_ptr<Context>> CompileManager::add(Window& window, ref_ptr<ViewportState> viewport, const ResourceRequirements& resourceRequirements)
 {
+    std::vector<ref_ptr<Context>> contexts;
     auto cts = takeCompileTraversals(numCompileTraversals);
     for (auto& ct : cts)
     {
-        ct->add(window, viewport, resourceRequirements);
+        contexts.push_back(ct->add(window, viewport, resourceRequirements));
 
         compileTraversals->add(ct);
     }
+
+    return contexts;
 }
 
-void CompileManager::add(Window& window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
+std::vector<ref_ptr<Context>> CompileManager::add(Window& window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
 {
+    std::vector<ref_ptr<Context>> contexts;
     auto cts = takeCompileTraversals(numCompileTraversals);
     for (auto& ct : cts)
     {
-        ct->add(window, view, resourceRequirements);
+        contexts.push_back(ct->add(window, view, resourceRequirements));
 
         compileTraversals->add(ct);
     }
+
+    return contexts;
 }
 
-void CompileManager::add(Framebuffer& framebuffer, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
+std::vector<ref_ptr<Context>> CompileManager::add(Framebuffer& framebuffer, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
 {
+    std::vector<ref_ptr<Context>> contexts;
     auto cts = takeCompileTraversals(numCompileTraversals);
     for (auto& ct : cts)
     {
-        ct->add(framebuffer, view, resourceRequirements);
+        contexts.push_back(ct->add(framebuffer, view, resourceRequirements));
 
         compileTraversals->add(ct);
     }
+
+    return contexts;
 }
 
 void CompileManager::add(const Viewer& viewer, const ResourceRequirements& resourceRequirements)
@@ -149,6 +161,17 @@ void CompileManager::add(const Viewer& viewer, const ResourceRequirements& resou
     for (auto& ct : cts)
     {
         ct->add(viewer, resourceRequirements);
+
+        compileTraversals->add(ct);
+    }
+}
+
+void CompileManager::remove(ref_ptr<Context> context)
+{
+    auto cts = takeCompileTraversals(numCompileTraversals);
+    for (auto& ct : cts)
+    {
+        ct->remove(context);
 
         compileTraversals->add(ct);
     }

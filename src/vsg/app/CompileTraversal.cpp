@@ -61,7 +61,7 @@ CompileTraversal::~CompileTraversal()
 {
 }
 
-void CompileTraversal::add(ref_ptr<Device> device, ref_ptr<TransferTask> transferTask, const ResourceRequirements& resourceRequirements)
+ref_ptr<Context> CompileTraversal::add(ref_ptr<Device> device, ref_ptr<TransferTask> transferTask, const ResourceRequirements& resourceRequirements)
 {
     auto queueFamily = device->getPhysicalDevice()->getQueueFamily(queueFlags);
     auto context = Context::create(device, resourceRequirements);
@@ -70,14 +70,16 @@ void CompileTraversal::add(ref_ptr<Device> device, ref_ptr<TransferTask> transfe
     context->graphicsQueue = device->getQueue(queueFamily, queueFamilyIndex);
     context->transferTask = transferTask;
     contexts.push_back(context);
+
+    return context;
 }
 
-void CompileTraversal::add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements)
+ref_ptr<Context> CompileTraversal::add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements)
 {
-    add(device, nullptr, resourceRequirements);
+    return add(device, nullptr, resourceRequirements);
 }
 
-void CompileTraversal::add(Window& window, ref_ptr<TransferTask> transferTask, ref_ptr<ViewportState> viewport, const ResourceRequirements& resourceRequirements)
+ref_ptr<Context> CompileTraversal::add(Window& window, ref_ptr<TransferTask> transferTask, ref_ptr<ViewportState> viewport, const ResourceRequirements& resourceRequirements)
 {
     auto device = window.getOrCreateDevice();
     auto renderPass = window.getOrCreateRenderPass();
@@ -97,14 +99,16 @@ void CompileTraversal::add(Window& window, ref_ptr<TransferTask> transferTask, r
     if (renderPass->maxSamples != VK_SAMPLE_COUNT_1_BIT) context->overridePipelineStates.emplace_back(MultisampleState::create(renderPass->maxSamples));
 
     contexts.push_back(context);
+
+    return context;
 }
 
-void CompileTraversal::add(Window& window, ref_ptr<ViewportState> viewport, const ResourceRequirements& resourceRequirements)
+ref_ptr<Context> CompileTraversal::add(Window& window, ref_ptr<ViewportState> viewport, const ResourceRequirements& resourceRequirements)
 {
-    add(window, nullptr, viewport, resourceRequirements);
+    return add(window, nullptr, viewport, resourceRequirements);
 }
 
-void CompileTraversal::add(Window& window, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
+ref_ptr<Context> CompileTraversal::add(Window& window, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
 {
     auto device = window.getOrCreateDevice();
     auto renderPass = window.getOrCreateRenderPass();
@@ -132,14 +136,16 @@ void CompileTraversal::add(Window& window, ref_ptr<TransferTask> transferTask, r
     contexts.push_back(context);
 
     if (view->viewDependentState) addViewDependentState(*(view->viewDependentState), device, transferTask, resourceRequirements);
+
+    return context;
 }
 
-void CompileTraversal::add(Window& window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
+ref_ptr<Context> CompileTraversal::add(Window& window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
 {
-    add(window, nullptr, view, resourceRequirements);
+    return add(window, nullptr, view, resourceRequirements);
 }
 
-void CompileTraversal::add(Framebuffer& framebuffer, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
+ref_ptr<Context> CompileTraversal::add(Framebuffer& framebuffer, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
 {
     ref_ptr<Device> device(framebuffer.getDevice());
     auto context = Context::create(device, resourceRequirements);
@@ -149,10 +155,10 @@ void CompileTraversal::add(Framebuffer& framebuffer, ref_ptr<TransferTask> trans
     context->graphicsQueue = device->getQueue(queueFamily, queueFamilyIndex);
     context->transferTask = transferTask;
 
-    add(context, framebuffer, transferTask, view, resourceRequirements);
+    return add(context, framebuffer, transferTask, view, resourceRequirements);
 }
 
-void CompileTraversal::add(ref_ptr<Context> context, Framebuffer& framebuffer, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
+ref_ptr<Context> CompileTraversal::add(ref_ptr<Context> context, Framebuffer& framebuffer, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
 {
     ref_ptr<Device> device(framebuffer.getDevice());
     auto renderPass = context->renderPass = framebuffer.getRenderPass();
@@ -171,11 +177,13 @@ void CompileTraversal::add(ref_ptr<Context> context, Framebuffer& framebuffer, r
     contexts.push_back(context);
 
     if (view->viewDependentState) addViewDependentState(*(view->viewDependentState), device, transferTask, resourceRequirements);
+
+    return context;
 }
 
-void CompileTraversal::add(Framebuffer& framebuffer, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
+ref_ptr<Context> CompileTraversal::add(Framebuffer& framebuffer, ref_ptr<View> view, const ResourceRequirements& resourceRequirements)
 {
-    add(framebuffer, nullptr, view, resourceRequirements);
+    return add(framebuffer, nullptr, view, resourceRequirements);
 }
 
 void CompileTraversal::add(const Viewer& viewer, const ResourceRequirements& resourceRequirements)
@@ -236,6 +244,15 @@ void CompileTraversal::add(const Viewer& viewer, const ResourceRequirements& res
         {
             cg->accept(addViews);
         }
+    }
+}
+
+void CompileTraversal::remove(ref_ptr<Context> context)
+{
+    auto itr = std::find(contexts.begin(), contexts.end(), context);
+    if (itr != contexts.end())
+    {
+        contexts.erase(itr);
     }
 }
 

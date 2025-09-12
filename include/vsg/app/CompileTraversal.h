@@ -50,31 +50,34 @@ namespace vsg
         ref_ptr<Instrumentation> instrumentation;
 
         /// add a compile Context for device
-        void add(ref_ptr<Device> device, ref_ptr<TransferTask> transferTask, const ResourceRequirements& resourceRequirements = {});
+        ref_ptr<Context> add(ref_ptr<Device> device, ref_ptr<TransferTask> transferTask, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for device
-        void add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements = {});
+        ref_ptr<Context> add(ref_ptr<Device> device, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for Window and associated viewport.
-        void add(Window& window, ref_ptr<TransferTask> transferTask, ref_ptr<ViewportState> viewport = {}, const ResourceRequirements& resourceRequirements = {});
+        ref_ptr<Context> add(Window& window, ref_ptr<TransferTask> transferTask, ref_ptr<ViewportState> viewport = {}, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for Window and associated viewport.
-        void add(Window& window, ref_ptr<ViewportState> viewport = {}, const ResourceRequirements& resourceRequirements = {});
+        ref_ptr<Context> add(Window& window, ref_ptr<ViewportState> viewport = {}, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for Window and associated View
-        void add(Window& window, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
+        ref_ptr<Context> add(Window& window, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for Window and associated View
-        void add(Window& window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
+        ref_ptr<Context> add(Window& window, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for Framebuffer and associated View
-        void add(Framebuffer& framebuffer, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
+        ref_ptr<Context> add(Framebuffer& framebuffer, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for Framebuffer and associated View
-        void add(Framebuffer& framebuffer, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
+        ref_ptr<Context> add(Framebuffer& framebuffer, ref_ptr<View> view, const ResourceRequirements& resourceRequirements = {});
 
         /// add a compile Context for all the Views assigned to a Viewer
         void add(const Viewer& viewer, const ResourceRequirements& resourceRequirements = {});
+
+        /// remove a compile Context
+        void remove(ref_ptr<Context> context);
 
         /// assign Instrumentation to all Context
         void assignInstrumentation(ref_ptr<Instrumentation> in_instrumentation);
@@ -105,7 +108,7 @@ namespace vsg
     protected:
         ~CompileTraversal();
 
-        void add(ref_ptr<Context> context, Framebuffer& framebuffer, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements);
+        ref_ptr<Context> add(ref_ptr<Context> context, Framebuffer& framebuffer, ref_ptr<TransferTask> transferTask, ref_ptr<View> view, const ResourceRequirements& resourceRequirements);
         void addViewDependentState(ViewDependentState& viewDependentState, ref_ptr<Device> device, ref_ptr<TransferTask> transferTask, const ResourceRequirements& resourceRequirements);
     };
     VSG_type_name(vsg::CompileTraversal);
