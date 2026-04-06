@@ -726,10 +726,10 @@ MacOS_Window::MacOS_Window(vsg::ref_ptr<vsg::WindowTraits> traits) :
 
     if (traits->nativeWindow.has_value())
     {
-        // Qt's WId on macOS is quintptr = size_t, holding an NSView*.
-        // vsgQt stores winId() directly: traits->nativeWindow = winId(),
-        // so the std::any holds a size_t.
-        auto nativeHandle = std::any_cast<size_t>(traits->nativeWindow);
+        // Qt's WId on macOS is quintptr, which Qt6 typedefs to unsigned
+        // long long on Apple platforms.  vsgQt stores winId() directly:
+        // traits->nativeWindow = winId(), so the std::any holds that type.
+        auto nativeHandle = std::any_cast<unsigned long long>(traits->nativeWindow);
         if (nativeHandle)
         {
             externalView = reinterpret_cast<NSView*>(nativeHandle);
