@@ -708,10 +708,83 @@ bool KeyboardMap::getKeySymbol(NSEvent* anEvent, vsg::KeySymbol& keySymbol, vsg:
 }
 
 MacOS_Window::MacOS_Window(vsg::ref_ptr<vsg::WindowTraits> traits) :
-    Inherit(traits)
+    Inherit(traits),
+    _window(nil),
+    _view(nil),
+    _metalLayer(nil)
 {
     _keyboard = new KeyboardMap;
 
+    // ---------------------------------------------------------------
+    // Embedded window path: when nativeWindow is set (e.g. from Qt's
+    // QWindow::winId()), use the provided NSView instead of creating
+    // a standalone NSWindow.  This mirrors what Win32_Window does with
+    // an HWND on Windows.
+    // ---------------------------------------------------------------
+    bool embedded = false;
+    NSView* externalView = nil;
+
+    if (traits->nativeWindow.has_value())
+    {
+        // Qt's WId on macOS is quintptr = size_t, holding an NSView*.
+        // vsgQt stores winId() directly: traits->nativeWindow = winId(),
+        // so the std::any holds a size_t.
+        auto nativeHandle = std::any_cast<size_t>(traits->nativeWindow);
+        if (nativeHandle)
+        {
+            externalView = reinterpret_cast<NSView*>(nativeHandle);
+            embedded = true;
+        }
+    }
+
+    if (embedded)
+    {
+        // Use the external view directly.
+        _view = (vsg_MacOS_NSView*)externalView;
+
+        // Ensure the view is layer-backed with a CAMetalLayer.
+        [_view setWantsLayer:YES];
+
+        _metalLayer = (CAMetalLayer*)[_view layer];
+        if (!_metalLayer || ![_metalLayer isKindOfClass:[CAMetalLayer class]])
+        {
+            // The view doesn't have a CAMetalLayer yet — create one and
+            // assign it.  Setting wantsLayer + layer together makes AppKit
+            // treat this as a "layer-hosting" view.
+            _metalLayer = [[CAMetalLayer alloc] init];
+            if (!_metalLayer)
+            {
+                throw Exception{"Error: vsg::MacOS_Window::MacOS_Window(...) failed to create CAMetalLayer for embedded view.", VK_ERROR_INVALID_EXTERNAL_HANDLE};
+            }
+            [_view setLayer:_metalLayer];
+        }
+
+        auto devicePixelScale = _traits->hdpi ? [[_view window] backingScaleFactor] : 1.0f;
+        [_metalLayer setContentsScale:devicePixelScale];
+
+        uint32_t finalwidth = traits->width * devicePixelScale;
+        uint32_t finalheight = traits->height * devicePixelScale;
+
+        if (traits->device)
+        {
+            share(traits->device);
+        }
+
+        _extent2D.width = finalwidth;
+        _extent2D.height = finalheight;
+
+        _first_macos_timestamp = [[NSProcessInfo processInfo] systemUptime];
+        _first_macos_time_point = vsg::clock::now();
+
+        vsg::clock::time_point event_time = vsg::clock::now();
+        bufferedEvents.emplace_back(vsg::ConfigureWindowEvent::create(this, event_time, _traits->x, _traits->y, finalwidth, finalheight));
+
+        return;
+    }
+
+    // ---------------------------------------------------------------
+    // Standalone window path (original behaviour)
+    // ---------------------------------------------------------------
     NSRect contentRect = NSMakeRect(0, 0, traits->width, traits->height);
 
     NSWindowStyleMask styleMask = 0;
@@ -822,16 +895,21 @@ void MacOS_Window::_initSurface()
 
 bool MacOS_Window::pollEvents(vsg::UIEvents& events)
 {
-    for (;;)
+    // When embedded in an external window (e.g. Qt), the host framework owns
+    // the event loop.  Only poll NSApp events for standalone windows.
+    if (_window)
     {
-        NSEvent* event = [NSApp nextEventMatchingMask:NSEventMaskAny
-                                            untilDate:[NSDate distantPast]
-                                               inMode:NSDefaultRunLoopMode
-                                              dequeue:YES];
-        if (event == nil)
-            break;
+        for (;;)
+        {
+            NSEvent* event = [NSApp nextEventMatchingMask:NSEventMaskAny
+                                                untilDate:[NSDate distantPast]
+                                                   inMode:NSDefaultRunLoopMode
+                                                  dequeue:YES];
+            if (event == nil)
+                break;
 
-        [NSApp sendEvent:event];
+            [NSApp sendEvent:event];
+        }
     }
 
     return Window::pollEvents(events);
@@ -841,7 +919,10 @@ void MacOS_Window::resize()
 {
     const NSRect contentRect = [_view frame];
 
-    auto devicePixelScale = _traits->hdpi ? [_window backingScaleFactor] : 1.0f;
+    // In the embedded case _window is nil; obtain the scale factor from the
+    // view's owning window instead.
+    NSWindow* hostWindow = _window ? _window : [_view window];
+    auto devicePixelScale = _traits->hdpi ? [hostWindow backingScaleFactor] : 1.0f;
     //[_metalLayer setContentsScale:devicePixelScale];
 
     _extent2D.width = contentRect.size.width * devicePixelScale;
